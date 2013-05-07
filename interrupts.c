@@ -50,22 +50,38 @@ ISR(ADC_vect)
 	 *
 	 * Currently the power consumption is not monitored.
 	 * */
+
+	static uint16_t avg = 0;
+	static uint8_t count = 0;
+
+	if(count != 0) {
+		avg += ADC;
+		count--;
+		goto adc_int_end;
+	}
+
+	avg = avg / 8;
+
 	switch(adc_current_target){
 		case ADC_AMBIENT_TEMP:
-			ambient_temp = ADC;
+			ambient_temp = avg;
 			adc_current_target = ADC_COOLANT_TEMP;
 			ADMUX = (ADMUX & 0xE0) | ADC_COOLANT_REG;
 			break;
 		case ADC_COOLANT_TEMP:
-			coolant_temp = ADC;
+			coolant_temp = avg;
 			adc_current_target = ADC_AMBIENT_TEMP;
 			ADMUX = (ADMUX & 0xE0) | ADC_AMBIENT_REG;
 			break;
 		case ADC_POWER_USAGE:
-			power_usage = ADC;
+			power_usage = avg;
 			break;
 	}
 
+	avg = 0;
+	count = 8;
+
+adc_int_end:
 	/* Begin the next conversion */
 	ADCSRA |= (1 << ADSC);
 }
