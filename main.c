@@ -18,7 +18,7 @@ int
 main(void)
 {
 #ifdef FM_DISPLAY
-	uint8_t current_display = DISP_MENU_TEMP;
+	uint8_t current_display = DISP_MENU_RPM;
 	uint8_t rotation_counter = 0;
 #endif
 	MCUSR = 0;
@@ -41,15 +41,14 @@ main(void)
 	while(1){
 		wdt_reset();
 
-		if(update){
+		if(SF1_TEST_BIT(SF1_UPDATE_READY)){
 			if(SF1_TEST_BIT(SF1_HB_ENABLE)){
 				serial_send_status();
 			}
-			update = 0;
 
 #ifdef FM_DISPLAY
 			display_update();
-			//rotation_counter++;
+//			rotation_counter++;
 			if(SF1_TEST_BIT(SF1_ROTATE) && (rotation_counter == 5)){
 				rotation_counter = 0;
 				if(current_display == DISP_MENU_MAX){
@@ -58,6 +57,8 @@ main(void)
 				display_switch(current_display++);
 			}
 #endif
+
+			SF1_CLEAR_BIT(SF1_UPDATE_READY);
 		}
 
 		if(SF1_TEST_BIT(SF1_RX_WAITING)){

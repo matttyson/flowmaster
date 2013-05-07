@@ -42,8 +42,9 @@ ISR(TIMER2_COMPA_vect)
 		pump_tach = 0;
 
 		/* Main function can call the update routine */
-		update = 1;
+		SF1_SET_BIT(SF1_UPDATE_READY);
 	}
+
 }
 
 /* ADC conversion complete interrupt */

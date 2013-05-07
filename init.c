@@ -33,11 +33,10 @@ init_tach_int()
 	/* Pull up disabled, use external pullup resistor */
 	PORTD = PORTD & ( ~ ((1 << PD2) | (1 << PD3)));
 
-	EICRA = (0 << ISC11) | (1 << ISC10) | (0 << ISC01) | (1 << ISC00);
+	EICRA = (1 << ISC11) | (0 << ISC10) | (1 << ISC01) | (0 << ISC00);
 
 	/* Activate interrupt handler. */
-	/* Leave INT0 disabled - It will be used for pulse stretching the fan.*/
-	EIMSK = (1 << INT1) | (0 << INT0);
+	EIMSK = (1 << INT1) | (1 << INT0);
 }
 
 /*
@@ -80,10 +79,9 @@ init_misc()
 	/* Disable analog comparitor */
 	ACSR = (1 << ACD);
 
-	/* Shut down timer/counter 2 */
-	//PRR = PRR | (1 << PRTIM0);
-	// Shut down two wire interface
-	PRR = (1 << PRTWI);
+	/* Shut down timer/counter 0 */
+	/* Shut down two wire interface */
+	//PRR = (1 << PRTWI) | (1 << PRTIM0);
 
 }
 

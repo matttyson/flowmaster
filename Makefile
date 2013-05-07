@@ -6,7 +6,7 @@ MCU=atmega88
 CC=avr-gcc
 
 DEFINES=-DF_CPU=$(F_CPU) -DUSART_BAUD=$(USART_BAUD) -DBOOTADDR=$(BOOTADDR)
-CFLAGS= -mmcu=$(MCU) -Wall  -funsigned-char
+CFLAGS= -mmcu=$(MCU) -Wall -funsigned-char
 OPTFLAG=-Os -flto -fwhole-program
 
 

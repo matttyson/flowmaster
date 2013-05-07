@@ -71,15 +71,13 @@ display_update_rpm()
 	uint16_t temp;
 
 	vfd_set_cursor(HD_LINE_0, FAN_RPM_COL);
-//	display_write_int16(FAN_TICKS_TO_RPM(fan_rpm));
-	display_write_int16(fan_rpm_1);
+	display_write_int16(FAN_TICKS_TO_RPM(fan_rpm));
 	vfd_set_cursor(HD_LINE_0, FAN_PC_COL);
 	temp = FAN_REGISTER;
 	display_write_int8(DC_TO_PC(temp),3);
 
 	vfd_set_cursor(HD_LINE_1, FAN_RPM_COL);
-//	display_write_int16(FAN_TICKS_TO_RPM(pump_rpm));
-	display_write_int16(fan_rpm_2);
+	display_write_int16(FAN_TICKS_TO_RPM(pump_rpm));
 	vfd_set_cursor(HD_LINE_1, FAN_PC_COL);
 	temp = PUMP_REGISTER;
 	display_write_int8(DC_TO_PC(temp),3);

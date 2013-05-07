@@ -40,14 +40,3 @@ uint8_t eeprom_max_temp EEMEM;
 uint8_t eeprom_temp_bands[4] EEMEM;
 
 volatile uint8_t adc_current_target = ADC_AMBIENT_TEMP;
-
-
-volatile uint8_t fan_int_ctr;
-volatile uint8_t fan_int_oflow;
-volatile uint8_t fan_int_ticks;
-
-
-volatile uint16_t fan_rpm_1 = 0;
-volatile uint16_t fan_rpm_2 = 0;
-
-//char bl_override __attribute__((section(".blsect"))) = 0;

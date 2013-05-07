@@ -52,13 +52,6 @@ extern volatile uint16_t power_usage;
 
 extern volatile uint8_t adc_current_target;
 
-/* Fan interrupt counter */
-extern volatile uint8_t fan_int_ctr;
-extern volatile uint8_t fan_int_oflow;
-extern volatile uint8_t fan_int_ticks;
-extern volatile uint16_t fan_rpm_1;
-extern volatile uint16_t fan_rpm_2;
-
 /* Status and config bits */
 extern volatile uint8_t status_flag_1;
 
@@ -85,6 +78,9 @@ extern volatile uint8_t status_flag_1;
 #define SF1_ROTATE 0x08
 /* The result of a fan RPM calculation is waiting to be processed*/
 #define SF1_FAN_SPEED 0x10
+/* update the displays */
+#define SF1_UPDATE_READY 0x20
+
 
 /* Never go any slower than 30% */
 #define DUTY_CYCLE_MIN 77
