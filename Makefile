@@ -154,4 +154,4 @@ fuseurl:
 	@echo "http://www.frank-zhao.com/fusecalc/fusecalc.php?chip=atmega88&LOW=$(LFUSE)&HIGH=$(HFUSE)&EXTENDED=$(EFUSE)&LOCKBIT=FF"
 # misc
 
-comb: $(COMBHEX)
+comb: all $(COMBHEX)
