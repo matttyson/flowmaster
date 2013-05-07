@@ -14,6 +14,11 @@ ISR(INT1_vect)
 	pump_tach++;
 }
 
+ISR(INT0_vect)
+{
+	fan_tach++;
+}
+
 ISR(TIMER2_COMPA_vect)
 {
 	//#define OFLOW (F_CPU / 1024 / 0xFF)

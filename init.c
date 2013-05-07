@@ -38,17 +38,6 @@ init_tach_int()
 	/* Activate interrupt handler. */
 	/* Leave INT0 disabled - It will be used for pulse stretching the fan.*/
 	EIMSK = (1 << INT1) | (0 << INT0);
-
-	/* 
-	 * Timer/Counter 0 is used to measure the pulse stretch.
-	 *
-	 * Enable interrupt on timer overflow.
-	 * */
-	
-	TIMSK0 = (1 << TOIE0);
-
-	/* Declare a pin as output for the PWM pulse stretch */
-	DDRC = DDRC | (1 << PC1);
 }
 
 /*
