@@ -159,6 +159,9 @@ serial_init_frame(uint8_t type, uint8_t length)
 static void
 serial_end_frame()
 {
+	/* TODO: This CRC is broken, this will consider DLE bytes used as padding
+	 * The mechanism needs to be modified so escapes are ignored
+	 * */
 	const uint8_t crc = calc_crc8(&tx_buffer[2],tx_buffer[3] + 2);
 	serial_add_byte(crc);
 	tx_buffer[tx_len++] = DLE;
@@ -309,13 +312,12 @@ ISR(USART_RX_vect)
 			case STX:
 				/* Start of transmission */
 				rx_len = 0;
-//				vfd_write(HD_COMMAND,HD_CMD_RESET);
-//				vfd_write(HD_COMMAND,HD_CMD_RETURN);
 				return;
 			case ETX:
 				/* End of transmission */
 				SF1_SET_BIT(SF1_RX_WAITING);
 				LOWER_CTS();
+				DISABLE_RX_INT();
 				return;
 			case DLE:
 				goto dle_unstuff;
