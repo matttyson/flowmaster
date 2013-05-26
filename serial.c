@@ -288,7 +288,7 @@ ISR(USART_RX_vect)
 {
 	static uint8_t previous = 0x00;
 	uint8_t byte = UDR0;
-#if 1
+
 	if(previous == DLE){
 		previous = byte;
 		switch(byte){
@@ -320,7 +320,6 @@ ISR(USART_RX_vect)
 		rx_buffer[rx_len++] = byte;
 
 	}
-#endif
 }
 
 /* Serial transmit interrupt */
