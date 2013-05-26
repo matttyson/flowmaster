@@ -8,10 +8,10 @@
 #include "speed.h"
 
 static uint8_t calc_crc8(volatile uint8_t* data_pointer, uint8_t number_of_bytes);
+static void calc_crc_byte(uint8_t byte);
 static uint8_t validate_rx_buffer();
 static void serial_begin_tx();
 static void serial_send_reply(uint8_t type);
-static void serial_send_adc_value();
 static void serial_call_bootloader();
 
 #define SERIAL_BUF_LENGTH 24
@@ -20,10 +20,12 @@ static void serial_call_bootloader();
 volatile static uint8_t tx_buffer[SERIAL_BUF_LENGTH];
 volatile static uint8_t tx_len = 0;
 volatile static uint8_t tx_ptr = 0;
+/* Used as the checksum value for serial transmission */
 volatile static uint8_t tx_checksum = 0;
 
 volatile static uint8_t rx_buffer[SERIAL_BUF_LENGTH];
 volatile static uint8_t rx_len = 0;
+
 
 #define DISABLE_TX_INT() UCSR0B = UCSR0B & ~(1 << TXCIE0)
 #define ENABLE_TX_INT()  UCSR0B = UCSR0B | (1 << TXCIE0)
@@ -42,6 +44,7 @@ volatile static uint8_t rx_len = 0;
 #define PKT_TAIL (PKT_CSUM + 1)
 
 /* For debugging only */
+/*
 void
 write_byte(uint8_t byte)
 {
@@ -57,6 +60,7 @@ write_string(const char *string)
 		write_byte(*string++);
 	}
 }
+*/
 
 void
 serial_process_input()
@@ -115,9 +119,6 @@ serial_process_input()
 			speed_set_pump(rx_buffer[2], rx_buffer[3]);
 			serial_send_reply(PACKET_TYPE_ACK);
 			break;
-		case PACKET_TYPE_GET_ADC:
-			serial_send_adc_value();
-			break;
 		default:
 			serial_send_reply(PACKET_TYPE_NAK);
 			break;
@@ -136,6 +137,7 @@ serial_add_byte(uint8_t byte)
 		tx_buffer[tx_len++] = DLE;
 	}
 	tx_buffer[tx_len++] = byte;
+	calc_crc_byte(byte);
 }
 
 static void
@@ -159,11 +161,13 @@ serial_init_frame(uint8_t type, uint8_t length)
 static void
 serial_end_frame()
 {
-	/* TODO: This CRC is broken, this will consider DLE bytes used as padding
-	 * The mechanism needs to be modified so escapes are ignored
-	 * */
-	const uint8_t crc = calc_crc8(&tx_buffer[2],tx_buffer[3] + 2);
-	serial_add_byte(crc);
+	/* Add the checksum, escape it if need be. */
+	if(tx_checksum == DLE){
+		tx_buffer[tx_len++] = DLE;
+	}
+	tx_buffer[tx_len++] = tx_checksum;
+
+	/* End the frame */
 	tx_buffer[tx_len++] = DLE;
 	tx_buffer[tx_len++] = ETX;
 }
@@ -183,18 +187,6 @@ serial_send_status()
 	serial_end_frame();
 
 	serial_begin_tx();
-}
-
-static void
-serial_send_adc_value()
-{
-/*
-	serial_init_frame(PACKET_TYPE_GET_ADC,2);
-	serial_add_word(adc_store);
-	serial_end_frame();
-
-	serial_begin_tx();
-*/
 }
 
 static void
@@ -231,16 +223,7 @@ dump_rx_buffer()
 	}
 	for(;;);
 }
-
- * */
-union temp_u
-{
-	struct {
-		uint8_t high;
-		uint8_t low;
-	};
-	uint16_t word;
-};
+*/
 
 static uint8_t
 validate_rx_buffer()
@@ -386,6 +369,26 @@ calc_crc8(volatile uint8_t* data_pointer, uint8_t number_of_bytes)
 		}
 	}
 	return crc8_result;
+}
+
+static void
+calc_crc_byte(uint8_t byte)
+{
+	uint8_t bit_counter;
+	uint8_t feedback_bit;
+	uint8_t temp1 = byte;
+	uint8_t crc8_result = tx_checksum;
+
+	for(bit_counter = 8; bit_counter; bit_counter--){
+		feedback_bit = (crc8_result & 0x01);
+		crc8_result >>= 1;
+		if (feedback_bit ^ (temp1 & 0x01)) {
+			crc8_result ^= 0x8c;
+		}
+		temp1 >>= 1;
+	}
+
+	tx_checksum = crc8_result;
 }
 
 static void
