@@ -15,6 +15,9 @@ extern const uint8_t fm_version_str[] PROGMEM;
 #define FAN_REGISTER OCR1A
 #define PUMP_REGISTER OCR1B
 
+#define PUMP_SPEED ((uint16_t)(TIMER1_TOP * 0.22))
+#define FAN_SPEED 0
+
 #if F_CPU == 14745600UL
 	#define TIMER1_TOP ((uint16_t)288)
 	#define OFLOW 225
@@ -44,6 +47,7 @@ extern volatile uint16_t power_usage;
 #define ADC_AMBIENT_TEMP 1
 #define ADC_COOLANT_TEMP 2
 #define ADC_POWER_USAGE  3
+#define ADC_DONE         4
 
 /* Ambient is on PC4 */
 #define ADC_AMBIENT_REG (1 << MUX2)
@@ -80,7 +84,8 @@ extern volatile uint8_t status_flag_1;
 #define SF1_FAN_SPEED 0x10
 /* update the displays */
 #define SF1_UPDATE_READY 0x20
-
+/* did the system restart under a watchdog condition */
+#define SF1_WDT_RESET 0x40
 
 /* Never go any slower than 30% */
 #define DUTY_CYCLE_MIN 77

@@ -64,10 +64,8 @@ init_pwm_timer()
 	/* Set top value of 25600hz at 14.7mhz */
 	ICR1 = TIMER1_TOP;
 
-	/* Pump startup speed */
-	PUMP_REGISTER = 0;
-	/* Fans will be started after a few seconds */
-	FAN_REGISTER = 0;
+	PUMP_REGISTER = PUMP_SPEED;
+	FAN_REGISTER = FAN_SPEED;
 
 	/* Enable the output pins, non inverting mode */
 	TCCR1A |= (1 << COM1A1)| (0 << COM1A0) | (1 << COM1B1) | (0 << COM1B0);
@@ -81,7 +79,7 @@ init_misc()
 
 	/* Shut down timer/counter 0 */
 	/* Shut down two wire interface */
-	//PRR = (1 << PRTWI) | (1 << PRTIM0);
+	PRR = (1 << PRTWI) | (1 << PRTIM0);
 
 }
 
@@ -111,6 +109,7 @@ init_timer()
 	TIMSK2 = (1 << OCIE2A);
 }
 
+#ifdef FM_DISPLAY
 static void
 init_spi()
 {
@@ -125,6 +124,7 @@ init_spi()
 	/* Double speed SPI */
 	SPSR = SPSR | (1 << SPI2X);
 }
+#endif
 
 /*
  * Thermistors are on ADC5 and ADC4 (port C, pins 5,4)
@@ -164,13 +164,15 @@ init_thermistors()
 void
 init_micro()
 {
-	wdt_disable();
-
+	init_pwm_timer();
 	init_misc();
 	init_serial();
-	init_pwm_timer();
 	init_tach_int();
+#ifdef FM_DISPLAY
 	init_spi();
+#endif
 	init_timer();
 	init_thermistors();
+
+	SF1_CLEAR_BIT(SF1_WDT_RESET);
 }

@@ -21,6 +21,9 @@ main(void)
 	uint8_t current_display = DISP_MENU_RPM;
 	uint8_t rotation_counter = 0;
 #endif
+	if(MCUSR & (1 << WDRF)){
+		SF1_SET_BIT(SF1_WDT_RESET);
+	}
 	MCUSR = 0;
 	wdt_disable();
 	cli();
