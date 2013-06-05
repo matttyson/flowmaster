@@ -8,8 +8,8 @@
 const uint8_t fm_version_str[] PROGMEM = "0.1";
 
 /* Duty cycle for the fans and pumps */
-volatile uint8_t fan_duty_cycle  = 100;
-volatile uint8_t pump_duty_cycle = 100;
+volatile uint8_t fan_duty_cycle  = 0;
+volatile uint8_t pump_duty_cycle = 0;
 
 /* Fan and pump speeds */
 volatile uint8_t fan_rpm = 0;
@@ -26,10 +26,10 @@ volatile uint16_t power_usage = 0;
 volatile uint8_t flow_rate = 0;
 
 /* 
- * The serial port will set this to 1 if
- * there is data waiting to be processed
+ * The status flag, contains info about the state of
+ * the system
  * */
-volatile uint8_t status_flag_1 = SF1_AUTOMATED | SF1_ROTATE;
+volatile uint8_t status_flag_1 = SF1_ROTATE;
 
 /* 
  * Max Temp, at this speed fans and pump will

@@ -28,10 +28,10 @@ init_tach_int()
 	/* PD4 PD3 - set to 0*/
 	DDRD = DDRD & ~((1 << PD2) | (1 << PD3));
 	/* PORTD to logic 1 (pull up enabled) - (fan tach is open collector) */
-	//PORTD = PORTD | ((1 << PD2) | (1 << PD3));
+	PORTD = PORTD | ((1 << PD2) | (1 << PD3));
 	
 	/* Pull up disabled, use external pullup resistor */
-	PORTD = PORTD & ( ~ ((1 << PD2) | (1 << PD3)));
+	//PORTD = PORTD & ( ~ ((1 << PD2) | (1 << PD3)));
 
 	EICRA = (1 << ISC11) | (0 << ISC10) | (1 << ISC01) | (0 << ISC00);
 
@@ -64,10 +64,10 @@ init_pwm_timer()
 	/* Set top value of 25600hz at 14.7mhz */
 	ICR1 = TIMER1_TOP;
 
-	/* Set a default duty cycle of 50% */
-	//OCR1A = TIMER1_TOP / 2;
-	//OCR1B = TIMER1_TOP / 2;
-	OCR1A = OCR1B = 0;
+	/* Pump startup speed */
+	PUMP_REGISTER = 0;
+	/* Fans will be started after a few seconds */
+	FAN_REGISTER = 0;
 
 	/* Enable the output pins, non inverting mode */
 	TCCR1A |= (1 << COM1A1)| (0 << COM1A0) | (1 << COM1B1) | (0 << COM1B0);

@@ -254,27 +254,28 @@ validate_rx_buffer()
 
 	switch(rx_buffer[PKT_TYPE]){
 		/* Fan & pump speed is two bytes, a 16 bit integer */
-		case PACKET_TYPE_SET_FAN:
 		case PACKET_TYPE_SET_PUMP:
 
-		if(rx_buffer[PKT_LENG] != 2){
-			return 1;
-		}
+			if(rx_buffer[PKT_LENG] != 2){
+				return 1;
+			}
 
-		/* Perform sanity checking, make sure the values are in range */
-		/*
+			/* Perform sanity checking, make sure the values are in range */
 
-		temp = (rx_buffer[2] << 8) | rx_buffer[3];
+			temp = (rx_buffer[2] << 8) | rx_buffer[3];
 
-		if(temp > TIMER1_TOP){
-			serial_send_reply(PACKET_TYPE_NAK);
-			return -1;
-		}
-		else if(temp < (uint16_t)(TIMER1_TOP * 0.3)){
-			serial_send_reply(PACKET_TYPE_NAK);
-			return -1;
-		}
-		*/
+			if(temp > TIMER1_TOP){
+				serial_send_reply(PACKET_TYPE_NAK);
+				return -1;
+			}
+			else if(temp < (uint16_t)(TIMER1_TOP * 0.20)){
+				/* Don't let the fans or pump go below 20% speed */
+				serial_send_reply(PACKET_TYPE_NAK);
+				return -1;
+			}
+			break;
+		default:
+			break;
 	}
 
 	/* If we got here, then the packet checks out, lets process it */
