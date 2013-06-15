@@ -149,9 +149,6 @@ bl_init()
 	UBRR0H = (uint8_t) (BAUD_PRESCALE(USART_BAUD) >> 8);
 	UBRR0L = (uint8_t) BAUD_PRESCALE(USART_BAUD);
 #undef BAUD_PRESCALE
-
-
-	/* Disable PWM, drive lines to high */
 }
 
 static uint8_t 

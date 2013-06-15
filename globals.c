@@ -17,12 +17,6 @@ volatile uint8_t pump_rpm = 0;
 volatile uint16_t ambient_temp = 0;
 volatile uint16_t coolant_temp = 0;
 
-
-volatile uint16_t power_usage = 0;
-
-/* Coolant flow rate */
-volatile uint8_t flow_rate = 0;
-
 /* 
  * The status flag, contains info about the state of
  * the system

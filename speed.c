@@ -10,16 +10,9 @@
 #define ADDRESS_MIN 0
 #define ADDRESS_MAX 65
 
-static uint16_t
+static inline uint16_t
 speed_read_table(uint16_t address)
 {
-	if(address < ADDRESS_MIN){
-		address = ADDRESS_MIN;
-	}
-	else if(address > ADDRESS_MAX){
-		address = ADDRESS_MAX;
-	}
-
 	return eeprom_read_word(&(fan_table[address]));
 }
 

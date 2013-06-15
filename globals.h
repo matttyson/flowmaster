@@ -43,15 +43,6 @@ extern volatile uint8_t pump_rpm;
 extern volatile uint16_t ambient_temp;
 extern volatile uint16_t coolant_temp;
 
-/* Pump flow rate */
-extern volatile uint8_t flow_rate;
-
-/* User configurable maximum */
-extern uint8_t eeprom_max_temp EEMEM;
-
-/* power consumption */
-extern volatile uint16_t power_usage;
-
 /* Where the result of the current ADC conversion is going */
 #define ADC_AMBIENT_TEMP 1
 #define ADC_COOLANT_TEMP 2

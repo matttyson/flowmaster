@@ -208,7 +208,7 @@ serial_send_status()
 	serial_add_byte(pump_rpm);
 	serial_add_word(ambient_temp);
 	serial_add_word(coolant_temp);
-	serial_add_byte(flow_rate);
+	serial_add_byte(0);
 	serial_end_frame();
 
 	serial_begin_tx();
@@ -429,7 +429,7 @@ ISR(USART_RX_vect)
 
 		if(rx_len == RX_BUF_LENGTH){
 			/* Buffer Overflow */
-			//serial_send_reply(PACKET_TYPE_OVERFLOW);
+			serial_send_reply(PACKET_TYPE_OVERFLOW);
 			return;
 		}
 		rx_buffer[rx_len++] = byte;

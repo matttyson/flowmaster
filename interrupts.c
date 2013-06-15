@@ -60,8 +60,6 @@ ISR(ADC_vect)
 	/* 
 	 * Store the result of the ADC conversion
 	 * and switch to the next conversion target
-	 *
-	 * Currently the power consumption is not monitored.
 	 * */
 
 /* Take this many samples then average them out */
@@ -86,14 +84,8 @@ ISR(ADC_vect)
 			break;
 		case ADC_COOLANT_TEMP:
 			coolant_temp = avg;
-			adc_current_target = ADC_DONE;
-			avg = 0;
-			count = ADC_COUNT;
-			/* Return, don't restart the ADC */
-			return;
-			break;
-		case ADC_POWER_USAGE:
-			power_usage = avg;
+			adc_current_target = ADC_AMBIENT_TEMP;
+			ADMUX = (ADMUX & 0xE0) | ADC_AMBIENT_REG;
 			break;
 	}
 
