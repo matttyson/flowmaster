@@ -28,7 +28,11 @@ ISR(TIMER2_COMPA_vect)
 	 * */
 
 	/* Timer 2 overflows too fast, so we use this to make up for the lack of resolution */
+#if OFLOW > 0x00FF
+	static uint16_t second_counter = OFLOW;
+#else
 	static uint8_t second_counter = OFLOW;
+#endif
 	second_counter--;
 
 	if(second_counter == 0) {
@@ -63,7 +67,7 @@ ISR(ADC_vect)
 	 * */
 
 /* Take this many samples then average them out */
-#define ADC_COUNT 32
+	const static uint8_t ADC_COUNT = 32;
 
 	static uint16_t avg = 0;
 	static uint8_t count = 0;
@@ -84,9 +88,13 @@ ISR(ADC_vect)
 			break;
 		case ADC_COOLANT_TEMP:
 			coolant_temp = avg;
-			adc_current_target = ADC_AMBIENT_TEMP;
+			adc_current_target = ADC_DONE;
 			ADMUX = (ADMUX & 0xE0) | ADC_AMBIENT_REG;
-			break;
+			avg = 0;
+			count = ADC_COUNT;
+			return;
+		case ADC_DONE:
+			return;
 	}
 
 	avg = 0;

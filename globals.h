@@ -17,7 +17,7 @@ extern uint16_t fan_table[FAN_TABLE_SIZE] EEMEM;
 #define FAN_REGISTER OCR1A
 #define PUMP_REGISTER OCR1B
 
-#define PUMP_SPEED ((uint16_t)(TIMER1_TOP * 0.21))
+#define PUMP_SPEED ((uint16_t)(TIMER1_TOP * 0.215))
 #define FAN_SPEED 0
 
 #if F_CPU == 14745600UL
@@ -27,10 +27,10 @@ extern uint16_t fan_table[FAN_TABLE_SIZE] EEMEM;
  * (14745600)/(2*1*288) = 25600khz
  * */
 	#define TIMER1_TOP ((uint16_t)288)
-	#define OFLOW ((uint8_t)225)
+	#define OFLOW (225)
 #elif F_CPU == 18432000UL
 	#define TIMER1_TOP ((uint16_t)360)
-	#define OFLOW ((uint8_t)225)
+	#define OFLOW (300)
 #else
 	#error define these values for F_CPU
 #endif
