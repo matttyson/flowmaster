@@ -26,10 +26,10 @@ speed_regulate()
 {
 	uint16_t input;
 	uint16_t output;
-	uint16_t index;
-	uint16_t span;
-	__uint24 slope;
-	__uint24 offset;
+	uint8_t index;
+	uint8_t span;
+	uint8_t slope;
+	uint8_t offset;
 
 	uint16_t ft;
 	uint16_t ft1;
@@ -38,14 +38,14 @@ speed_regulate()
 		input = coolant_temp;
 	}
 
-	span = input & 0xF;
-	index = input / 16;
+	span = (uint8_t)(input & 0xF);
+	index = (uint8_t)(input / 16);
 
 	ft = speed_read_table(index);
 	ft1 = speed_read_table(index+1);
 
-	slope = ft1 - ft;
-	offset = (slope * span) / 16;
+	slope = (uint8_t)(ft1 - ft);
+	offset = (uint8_t)((slope * span) / 16);
 	output = ft + offset;
 
 	FAN_REGISTER = MIN(output, TIMER1_TOP);
