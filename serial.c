@@ -401,40 +401,54 @@ validate_rx_buffer()
 /* Serial RX interrupt */
 ISR(USART_RX_vect)
 {
-	static uint8_t previous = 0x00;
-	uint8_t byte = UDR0;
+	static uint8_t rx_previous = 0;
+	const uint8_t byte = UDR0;
 
-	if(previous == DLE){
-		previous = byte;
-		switch(byte){
-			case STX:
-				/* Start of transmission */
-				rx_len = 0;
-				return;
-			case ETX:
-				/* End of transmission */
-				SF1_SET_BIT(SF1_RX_WAITING);
-				LOWER_CTS();
-				DISABLE_RX_INT();
-				return;
-			case DLE:
-				goto dle_unstuff;
+	if(byte == DLE && rx_previous != DLE) {
+		/*
+		 * If the current byte is a DLE, and the
+		 * previous byte was NOT a DLE, discard it.
+		 * */
+	}
+	else {
+		/*
+		 * Either we have an escaped byte, or a normal byte.
+		 * If it's escaped, check to see what it is and act
+		 * accordingly.
+		 *
+		 * STX indicates the start of a packet. Reset the buffer
+		 * and prepare for transmission.
+		 *
+		 * ETX indicates the end of a transmission. Set the
+		 * RX waiting flag so the code knows to check and
+		 * process the packet.
+		 *
+		 * DLE means a DLE character occurred as part of a
+		 * normal transmission.  Store it as a valid byte
+		 * in the RX buffer.
+		 * */
+		if(rx_previous == DLE){
+			switch(byte){
+				case STX:
+					rx_len = 0;
+					break;
+				case ETX:
+					SF1_SET_BIT(SF1_RX_WAITING);
+					LOWER_CTS();
+					DISABLE_RX_INT();
+					break;
+				case DLE:
+					rx_buffer[rx_len++] = byte;
+					rx_previous = 0;
+					/* return so we don't trip the rx_previous set at the end */
+					return;
+			}
+		}
+		else {
+			rx_buffer[rx_len++] = byte;
 		}
 	}
-
-	previous = byte;
-
-	if(byte != DLE){
-		dle_unstuff:
-
-		if(rx_len == RX_BUF_LENGTH){
-			/* Buffer Overflow */
-			serial_send_reply(PACKET_TYPE_OVERFLOW);
-			return;
-		}
-		rx_buffer[rx_len++] = byte;
-
-	}
+	rx_previous = byte;
 }
 
 /* Serial transmit interrupt */
