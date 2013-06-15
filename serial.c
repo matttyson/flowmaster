@@ -12,6 +12,7 @@ static void calc_crc_byte(uint8_t byte);
 static uint8_t validate_rx_buffer();
 static void serial_begin_tx();
 static void serial_send_reply(uint8_t type);
+static void serial_send_top();
 static void serial_call_bootloader();
 
 #define SERIAL_BUF_LENGTH 24
@@ -119,6 +120,9 @@ serial_process_input()
 			speed_set_pump(rx_buffer[2], rx_buffer[3]);
 			serial_send_reply(PACKET_TYPE_ACK);
 			break;
+		case PACKET_TYPE_GET_TOP:
+			serial_send_top();
+			break;
 		default:
 			serial_send_reply(PACKET_TYPE_NAK);
 			break;
@@ -186,6 +190,15 @@ serial_send_status()
 	serial_add_byte(flow_rate);
 	serial_end_frame();
 
+	serial_begin_tx();
+}
+
+static void
+serial_send_top()
+{
+	serial_init_frame(PACKET_TYPE_GET_TOP,2);
+	serial_add_word(TIMER1_TOP);
+	serial_end_frame();
 	serial_begin_tx();
 }
 

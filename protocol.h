@@ -112,4 +112,7 @@
 
 #define PACKET_TYPE_GET_ADC 0x18
 
+/* Send the TOP value of TIMER1 */
+#define PACKET_TYPE_GET_TOP 0x19
+
 #endif
