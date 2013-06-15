@@ -15,7 +15,7 @@ extern const uint8_t fm_version_str[] PROGMEM;
 #define FAN_REGISTER OCR1A
 #define PUMP_REGISTER OCR1B
 
-#define PUMP_SPEED ((uint16_t)(TIMER1_TOP * 0.22))
+#define PUMP_SPEED ((uint16_t)(TIMER1_TOP * 0.21))
 #define FAN_SPEED 0
 
 #if F_CPU == 14745600UL

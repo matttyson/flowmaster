@@ -41,6 +41,13 @@ ISR(TIMER2_COMPA_vect)
 		fan_tach = 0;
 		pump_tach = 0;
 
+		/* Kick off the ADC again */
+		if(!(ADCSRA & (1 << ADSC))){
+			adc_current_target = ADC_AMBIENT_TEMP;
+			ADMUX = (ADMUX & 0xE0) | ADC_AMBIENT_REG;
+			ADCSRA |= (1 << ADSC);
+		}
+
 		/* Main function can call the update routine */
 		SF1_SET_BIT(SF1_UPDATE_READY);
 	}
@@ -76,8 +83,10 @@ ISR(ADC_vect)
 			break;
 		case ADC_COOLANT_TEMP:
 			coolant_temp = avg;
-			adc_current_target = ADC_AMBIENT_TEMP;
-			ADMUX = (ADMUX & 0xE0) | ADC_AMBIENT_REG;
+			adc_current_target = ADC_DONE;
+			//ADMUX = (ADMUX & 0xE0) | ADC_AMBIENT_REG;
+			/* Return, don't restart the ADC */
+			return;
 			break;
 		case ADC_POWER_USAGE:
 			power_usage = avg;
