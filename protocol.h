@@ -115,4 +115,10 @@
 /* Send the TOP value of TIMER1 */
 #define PACKET_TYPE_GET_TOP 0x19
 
+/* Update the fan profile */
+#define PACKET_TYPE_SET_FAN_PROFILE 0x1A
+
+/* */
+#define PACKET_TYPE_GET_FAN_PROFILE 0x1B
+
 #endif

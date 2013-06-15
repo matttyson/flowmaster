@@ -33,6 +33,7 @@ init_tach_int()
 	/* Pull up disabled, use external pullup resistor */
 	//PORTD = PORTD & ( ~ ((1 << PD2) | (1 << PD3)));
 
+	/* External interrupt pins enabled. INT1, INT2 falling edge tiggered */
 	EICRA = (1 << ISC11) | (0 << ISC10) | (1 << ISC01) | (0 << ISC00);
 
 	/* Activate interrupt handler. */
@@ -57,7 +58,7 @@ init_pwm_timer()
 	/* Enable PWM pins as output */
 	DDRB = DDRB | (1 << PB2) | (1 << PB1);
 
-	/* Set waveform generation, mode 10 */
+	/* Set waveform generation, mode 10, prescaler disabled */
 	TCCR1A |= (1 << WGM11);
 	TCCR1B |= (1 << CS10) | (1 << WGM13);
 
@@ -129,25 +130,25 @@ init_spi()
 /*
  * Thermistors are on ADC5 and ADC4 (port C, pins 5,4)
  *
- * Currently using pin4
  * */
 
 static void
 init_thermistors()
 {
-	/* DDRC pins 4 and 5 as inputs */
-	DDRC = DDRC & ~((1 << PC5) | (1 << PC4));
+	/* DDRC pins 3 and 4 as inputs */
+	DDRC = DDRC & ~((1 << PC3) | (1 << PC4));
+
 	/* Pull ups off */
-	PORTC = PORTC & ( ~ ((1 << PC5) | (1 << PC4)));
+	PORTC = PORTC & ( ~ ((1 << PC3) | (1 << PC4)));
 
 	/* Disable digital inputs */
-	DIDR0 = (1 << ADC5D) | (1 << ADC4D);
+	DIDR0 = (1 << INIT_AMBIENT_ADC) | (1 << INIT_COOLANT_ADC);
 
 	/* AVcc with capacitor on AREF */
 	ADMUX = (0 << REFS1) | (1 << REFS0);
 
-	/* Pin 4 */
-	ADMUX |= (1 << MUX2);
+	/* Enable Ambient */
+	ADMUX |= ADC_AMBIENT_REG;
 
 	/* Enable ADC, Enable interrupts */
 	/* ADC divisor of 128 */
@@ -175,4 +176,7 @@ init_micro()
 	init_thermistors();
 
 	SF1_CLEAR_BIT(SF1_WDT_RESET);
+
+	/* Start the pump */
+	PUMP_REGISTER = PUMP_SPEED;
 }

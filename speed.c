@@ -4,25 +4,59 @@
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
+#include <util/atomic.h>
+#include <avr/eeprom.h>
+
+#define ADDRESS_MIN 0
+#define ADDRESS_MAX 65
+
+static uint16_t
+speed_read_table(uint16_t address)
+{
+	if(address < ADDRESS_MIN){
+		address = ADDRESS_MIN;
+	}
+	else if(address > ADDRESS_MAX){
+		address = ADDRESS_MAX;
+	}
+
+	return eeprom_read_word(&(fan_table[address]));
+}
 
 /*
- * Given the current temperature, regulate the pump and fan speeds.
+ * Regulate the fan speed according to a linear interpolation.
  *
+ * This algorithim comes from Microchip Application Note AN942.
  * */
+void
+speed_regulate()
+{
+	uint16_t input;
+	uint16_t output;
+	uint16_t index;
+	uint16_t span;
+	__uint24 slope;
+	__uint24 offset;
 
-//#define SET_SPEED(x) fan_duty_cycle = (x); pump_duty_cycle = (x);
+	uint16_t ft;
+	uint16_t ft1;
 
-#define C_ENABLE()  TCCR0B = (1 << CS02) | (1 << CS01) | (1 << CS00)
-#define C_DISABLE() TCCR0B = 0
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		input = coolant_temp;
+	}
 
-#define INT_ENABLE()  EIMSK = EIMSK | (1 << INT0)
-#define INT_DISABLE() EIMSK = EIMSK & ~(1 << INT0)
+	span = input & 0xF;
+	index = input / 16;
 
-#define FAN_FULL() PINC = PINC | (1 << PC1)
-#define FAN_NORM() PINC = PINC & ~(1 << PC1)
+	ft = speed_read_table(index);
+	ft1 = speed_read_table(index+1);
 
-#define FAN_CLK (F_CPU / 1024)
+	slope = ft1 - ft;
+	offset = (slope * span) / 16;
+	output = ft + offset;
 
+	FAN_REGISTER = MIN(output, TIMER1_TOP);
+}
 
 void
 speed_set_fan(uint8_t high, uint8_t low)

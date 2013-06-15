@@ -1,15 +1,13 @@
 
-F_CPU=14745600UL
-#F_CPU=18432000UL
+#F_CPU=14745600UL
+F_CPU=18432000UL
 USART_BAUD=19200UL
-MCU=atmega88
+MCU=atmega88p
 CC=avr-gcc
 
-DEFINES=-DF_CPU=$(F_CPU) -DUSART_BAUD=$(USART_BAUD) -DBOOTADDR=$(BOOTADDR)
-CFLAGS= -mmcu=$(MCU) -Wall -funsigned-char
+DEFINES=-DF_CPU=$(F_CPU) -DUSART_BAUD=$(USART_BAUD) -DBOOTADDR=$(BOOTADDR) --std=c99
+CFLAGS= -mmcu=$(MCU) -Wall -funsigned-char -fshort-enums
 OPTFLAG=-Os -flto -fwhole-program
-
-
 
 # Program for creating the lookup tables.
 CREATETABLES=createtables
@@ -20,7 +18,8 @@ OBJECTS=\
 	init.o\
 	serial.o\
 	speed.o\
-	interrupts.o
+	interrupts.o\
+	eetable.o
 
 ifeq ($(DISPLAY),1)
 
@@ -31,6 +30,7 @@ endif
 
 BIN=pumpcontrol.bin
 HEX=pumpcontrol.hex
+EEHEX=pumpcontrol.eep
 
 # Memory sections
 #SHAREDSECT=-Wl,--section-start=.blsect=0x008004FF
@@ -84,10 +84,11 @@ DUDE_PART=$(MCU)
 .SUFFIXES: .o .c
 .PHONY: program all clean progfuse boot comb dump
 
-all: tables.c $(OBJECTS) $(HEX)
+all: eetable.c $(OBJECTS) $(HEX)
 
 $(HEX): $(BIN)
-	avr-objcopy -O ihex $(BIN) $(HEX)
+	avr-objcopy -R .eeprom -O ihex $(BIN) $(HEX)
+	avr-objcopy -j .eeprom --change-section-lma .eeprom=0 -O ihex $(BIN) $(EEHEX)
 	avr-size -C --mcu=$(MCU) $(BIN)
 
 #avr-objcopy -j .bss -j .text -j .data -O ihex $(BIN) $(HEX)
@@ -103,6 +104,9 @@ $(BIN): $(OBJECTS)
 program: $(HEX)
 	avrdude -p $(DUDE_PART) -c $(DUDE_PROG) -P $(DUDE_PORT) -U flash:w:$(HEX)
 
+eeprogram: $(EEHEX)
+	avrdude -p $(DUDE_PART) -c $(DUDE_PROG) -P $(DUDE_PORT) -U eeprom:w:$(EEHEX)
+
 boot: $(BOOTHEX)
 
 # Build the bootloader
@@ -117,12 +121,12 @@ $(BOOTBIN): bootloader.o
 	$(CC) $(DEFINES) $(BOOTFLAGS) $(CFLAGS) $(SHAREDSECT) -Os -Wl,--section-start=.text=$(BOOTADDR) -o $(BOOTBIN) bootloader.o
 
 $(COMBHEX): $(HEX) $(BOOTHEX)
-	srec_cat  pumpcontrol.hex -intel bootloader.hex -intel -o combined.hex -intel
+	srec_cat  pumpcontrol.hex -intel bootloader.hex -intel -o $(COMBHEX) -intel
 
-$(CREATETABLES): createtables.c
-	gcc -lm -o $(CREATETABLES) -Wall -O2 createtables.c
+$(CREATETABLES): createeetable.c
+	gcc -lm -o $(CREATETABLES) -Wall -O2 -DF_CPU=$(F_CPU) createeetable.c
 
-tables.c: $(CREATETABLES)
+eetable.c: $(CREATETABLES) createeetable.c
 	./$(CREATETABLES)
 
 dump: all
@@ -135,23 +139,24 @@ progboot: $(COMBHEX)
 # Program the fuses for the ATMEGA88
 # Change accordingly if you are using a different part!
 LFUSE=D6
-HFUSE=DF
+HFUSE=D7
 EFUSE=03
-# http://www.frank-zhao.com/fusecalc/fusecalc.php?chip=atmega88&LOW=D6&HIGH=DF&EXTENDED=04&LOCKBIT=FF
+# http://eleccelerator.com/fusecalc/fusecalc.php?chip=atmega88&LOW=D6&HIGH=D7&EXTENDED=04&LOCKBIT=FF
 progfuse:
 	avrdude -p $(DUDE_PART) -c $(DUDE_PROG) -P $(DUDE_PORT) -U lfuse:w:0x$(LFUSE):m
 	avrdude -p $(DUDE_PART) -c $(DUDE_PROG) -P $(DUDE_PORT) -U hfuse:w:0x$(HFUSE):m
 	avrdude -p $(DUDE_PART) -c $(DUDE_PROG) -P $(DUDE_PORT) -U efuse:w:0x$(EFUSE):m
 
 clean:
-	rm -f $(OBJECTS) $(HEX) $(BIN) $(BOOTBIN) $(BOOTHEX) bootloader.o combined.hex $(CREATETABLES)
-	rm -f createtables.o tables.h tables.c
+	rm -f $(OBJECTS) $(HEX) $(EEHEX) $(BIN) $(BOOTBIN) $(BOOTHEX) bootloader.o
+	rm -f $(COMBHEX) $(CREATETABLES) createtables.o tables.h tables.c $(EEHEX)
+	rm -f eetable.c
 
 dumpflash:
 	avrdude -p $(DUDE_PART) -c $(DUDE_PROG) -P $(DUDE_PORT) -U flash:r:dump.hex:i
 
 fuseurl:
-	@echo "http://www.frank-zhao.com/fusecalc/fusecalc.php?chip=atmega88&LOW=$(LFUSE)&HIGH=$(HFUSE)&EXTENDED=$(EFUSE)&LOCKBIT=FF"
+	@echo "http://eleccelerator.com/fusecalc/fusecalc.php?chip=atmega88&LOW=D6&HIGH=D7&EXTENDED=04&LOCKBIT=FF"
 # misc
 
 comb: all $(COMBHEX)

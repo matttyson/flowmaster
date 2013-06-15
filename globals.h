@@ -8,8 +8,10 @@
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
-#define FLOWMASTER_VERSION 1
-extern const uint8_t fm_version_str[] PROGMEM;
+#define FLOWMASTER_VERSION 2
+
+#define FAN_TABLE_SIZE 65
+extern uint16_t fan_table[FAN_TABLE_SIZE] EEMEM;
 
 /* Timer registers for the fan and pumps */
 #define FAN_REGISTER OCR1A
@@ -19,14 +21,21 @@ extern const uint8_t fm_version_str[] PROGMEM;
 #define FAN_SPEED 0
 
 #if F_CPU == 14745600UL
+/*
+ * See the AVR datasheet about Phase Correct PWM
+ * No prescaler (ie, 1)
+ * (14745600)/(2*1*288) = 25600khz
+ * */
 	#define TIMER1_TOP ((uint16_t)288)
-	#define OFLOW 225
+	#define OFLOW ((uint8_t)225)
+#elif F_CPU == 18432000UL
+	#define TIMER1_TOP ((uint16_t)360)
+	#define OFLOW ((uint8_t)225)
 #else
 	#error define these values for F_CPU
 #endif
 
-
-/* Fan and pump speeds (<<5 to get RPMs)  */
+/* Fan and pump speeds (<<5 to get RPMs) */
 extern volatile uint8_t fan_rpm;
 extern volatile uint8_t pump_rpm;
 
@@ -49,10 +58,24 @@ extern volatile uint16_t power_usage;
 #define ADC_POWER_USAGE  3
 #define ADC_DONE         4
 
-/* Ambient is on PC4 */
-#define ADC_AMBIENT_REG (1 << MUX2)
-/* Coolant is on PC5 */
-#define ADC_COOLANT_REG ((1 << MUX2) | (1 << MUX0))
+
+/* update init_thermistors() in init.c if you change this! */
+
+/* The various ADC Channels */
+#define ADC5 ((1 << MUX2) | (1 << MUX0))
+#define ADC4 (1 << MUX2)
+#define ADC3 ((1 << MUX1) | (1 << MUX0))
+#define ADC2 (1 << MUX1)
+#define ADC1 (1 << MUX0)
+#define ADC0 (0)
+
+/* The pins that we are using fo the thermistors */
+#define ADC_AMBIENT_REG ADC3
+#define ADC_COOLANT_REG ADC4
+
+/* Disable digital on these pins */
+#define INIT_AMBIENT_ADC ADC3D
+#define INIT_COOLANT_ADC ADC4D
 
 extern volatile uint8_t adc_current_target;
 
@@ -87,13 +110,7 @@ extern volatile uint8_t status_flag_1;
 /* did the system restart under a watchdog condition */
 #define SF1_WDT_RESET 0x40
 
-/* Never go any slower than 30% */
-#define DUTY_CYCLE_MIN 77
-/* The hardcoded maximum temp we can never go over */
-#define GLOBAL_MAX_TEMP ((uint8_t)60)
-#define MAX_TEMP() MIN(eeprom_read_byte(&eeprom_max_temp), GLOBAL_MAX_TEMP)
-
-/* Minumum and max
- * */
+/* Never go any slower than 20% */
+#define DUTY_CYCLE_MIN (TIMER1_TOP * 0.20)
 
 #endif

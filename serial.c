@@ -14,18 +14,38 @@ static void serial_begin_tx();
 static void serial_send_reply(uint8_t type);
 static void serial_send_top();
 static void serial_call_bootloader();
+static void serial_set_fan_profile();
+static void serial_get_fan_profile();
 
-#define SERIAL_BUF_LENGTH 24
-#define SERIAL_BUF_PAYLOAD 19
+#define RX_BUF_LENGTH 32
+#define RX_BUF_PAYLOAD_LEN (RX_BUF_LENGTH - 5)
 
-volatile static uint8_t tx_buffer[SERIAL_BUF_LENGTH];
+#define TX_BUF_LENGTH 24
+#define TX_BUF_PAYLOAD_LEN (TX_BUF_LENGTH - 2)
+
+volatile static uint8_t tx_buffer[TX_BUF_LENGTH];
+/* How many bytes been packed into the buffer */
 volatile static uint8_t tx_len = 0;
+/* Used to know where we are when transmitting */
 volatile static uint8_t tx_ptr = 0;
 /* Used as the checksum value for serial transmission */
 volatile static uint8_t tx_checksum = 0;
 
-volatile static uint8_t rx_buffer[SERIAL_BUF_LENGTH];
+volatile static uint8_t rx_buffer[RX_BUF_LENGTH];
 volatile static uint8_t rx_len = 0;
+
+enum serial_tx_state {
+	STATE_START_DLE,
+	STATE_START_STX,
+	STATE_SEND_DATA,
+	STATE_SEND_CSUM,
+	STATE_END_DLE,
+	STATE_END_ETX,
+	STATE_DONE
+};
+
+/* State machine for the serial transmit interrupt */
+volatile static enum serial_tx_state tx_state = STATE_DONE;
 
 
 #define DISABLE_TX_INT() UCSR0B = UCSR0B & ~(1 << TXCIE0)
@@ -123,6 +143,12 @@ serial_process_input()
 		case PACKET_TYPE_GET_TOP:
 			serial_send_top();
 			break;
+		case PACKET_TYPE_SET_FAN_PROFILE:
+			serial_set_fan_profile();
+			break;
+		case PACKET_TYPE_GET_FAN_PROFILE:
+			serial_get_fan_profile();
+			break;
 		default:
 			serial_send_reply(PACKET_TYPE_NAK);
 			break;
@@ -137,9 +163,6 @@ serial_process_input()
 static void
 serial_add_byte(uint8_t byte)
 {
-	if(byte == DLE){
-		tx_buffer[tx_len++] = DLE;
-	}
 	tx_buffer[tx_len++] = byte;
 	calc_crc_byte(byte);
 }
@@ -151,13 +174,20 @@ serial_add_word(uint16_t word)
 	serial_add_byte((uint8_t)(word & 0x00FF));
 }
 
+/*
+static uint16_t
+serial_get_word(uint8_t offset)
+{
+	return (rx_buffer[offset] << 8) | rx_buffer[offset+1];
+}
+*/
+
 static void
 serial_init_frame(uint8_t type, uint8_t length)
 {
-	tx_len = 2;
+	tx_len = 0;
 	tx_checksum = 0;
-	tx_buffer[0] = DLE;
-	tx_buffer[1] = STX;
+
 	serial_add_byte(type);
 	serial_add_byte(length);
 }
@@ -165,15 +195,6 @@ serial_init_frame(uint8_t type, uint8_t length)
 static void
 serial_end_frame()
 {
-	/* Add the checksum, escape it if need be. */
-	if(tx_checksum == DLE){
-		tx_buffer[tx_len++] = DLE;
-	}
-	tx_buffer[tx_len++] = tx_checksum;
-
-	/* End the frame */
-	tx_buffer[tx_len++] = DLE;
-	tx_buffer[tx_len++] = ETX;
 }
 
 void
@@ -190,6 +211,86 @@ serial_send_status()
 	serial_add_byte(flow_rate);
 	serial_end_frame();
 
+	serial_begin_tx();
+}
+
+
+/**
+ * This will update the EEPROM table where the fan speed table is stored
+ * address is the address where the first element will be written.
+ * count is the number of data bytes in the packet.
+ *
+ * every time a byte is written the address will be incremented.
+ */
+
+static void
+serial_set_fan_profile()
+{
+	uint8_t i;
+	uint8_t count; /* The number of elements in the data packet */
+	uint8_t index; /* The address of the first element */
+	uint8_t ptr = 4;
+	uint16_t data;
+
+	count = rx_buffer[2];
+	index = rx_buffer[3];
+
+	if(index > (FAN_TABLE_SIZE - 1)){
+		/* index out of range, reject with an error */
+		serial_send_reply(PACKET_TYPE_NAK);
+		return;
+	}
+
+	for(i = 0; i < count; i++) {
+		data = rx_buffer[ptr++] << 8;
+		data |= rx_buffer[ptr++];
+
+		eeprom_busy_wait();
+		eeprom_update_word(&(fan_table[index]), data);
+		index++;
+	}
+
+	/* send an ack */
+	serial_send_reply(PACKET_TYPE_ACK);
+}
+
+static void
+serial_get_fan_profile()
+{
+	uint8_t i;
+	uint8_t index = rx_buffer[2];
+	/* the number of elemenets we can fit in the packet */
+	const uint8_t elements = (TX_BUF_PAYLOAD_LEN - 2) / 2;
+	uint8_t to_send = elements;
+
+	if(index > (FAN_TABLE_SIZE - 1)){
+		/* index out of range, reject with an error */
+		serial_send_reply(PACKET_TYPE_NAK);
+		return;
+	}
+
+	/* if we are close to the limit, clamp it */
+	if((index + to_send) > FAN_TABLE_SIZE){
+		to_send = FAN_TABLE_SIZE - index;
+	}
+
+	/* work out how many sensor values we can send */
+	const uint8_t bytes_to_send = (to_send * 2) + 1;
+
+	if(to_send == 0 || to_send > FAN_TABLE_SIZE){
+		serial_send_reply(PACKET_TYPE_NAK);
+		return;
+	}
+
+	serial_init_frame(PACKET_TYPE_GET_FAN_PROFILE, bytes_to_send);
+	serial_add_byte(to_send);
+
+	for(i = 0; i < to_send; i++) {
+		const uint16_t word = eeprom_read_word(&(fan_table[i+index]));
+		serial_add_word(word);
+	}
+
+	serial_end_frame();
 	serial_begin_tx();
 }
 
@@ -244,7 +345,7 @@ validate_rx_buffer()
 	uint8_t checksum;
 	uint16_t temp;
 
-	if(rx_buffer[PKT_LENG] > SERIAL_BUF_PAYLOAD){
+	if(rx_buffer[PKT_LENG] > RX_BUF_PAYLOAD_LEN){
 		/* Payload length is greater than maximum */
 		serial_send_reply(PACKET_TYPE_BAD_LENGTH);
 		return 1;
@@ -281,7 +382,7 @@ validate_rx_buffer()
 				serial_send_reply(PACKET_TYPE_NAK);
 				return -1;
 			}
-			else if(temp < (uint16_t)(TIMER1_TOP * 0.20)){
+			else if(temp < (uint16_t)DUTY_CYCLE_MIN){
 				/* Don't let the fans or pump go below 20% speed */
 				serial_send_reply(PACKET_TYPE_NAK);
 				return -1;
@@ -326,7 +427,7 @@ ISR(USART_RX_vect)
 	if(byte != DLE){
 		dle_unstuff:
 
-		if(rx_len == SERIAL_BUF_LENGTH){
+		if(rx_len == RX_BUF_LENGTH){
 			/* Buffer Overflow */
 			//serial_send_reply(PACKET_TYPE_OVERFLOW);
 			return;
@@ -337,16 +438,57 @@ ISR(USART_RX_vect)
 }
 
 /* Serial transmit interrupt */
+
 ISR(USART_TX_vect)
 {
-	if(tx_ptr == tx_len){
-		tx_len = 0;
-		tx_ptr = 0;
-		DISABLE_TX_INT();
-		return;
-	}
+	static uint8_t previous = 0;
 
-	UDR0 = tx_buffer[tx_ptr++];
+	switch(tx_state) {
+		case STATE_START_DLE:
+			UDR0 = DLE;
+			tx_state = STATE_START_STX;
+			break;
+		case STATE_START_STX:
+			UDR0 = STX;
+			previous = 0;
+			tx_state = STATE_SEND_DATA;
+			break;
+		case STATE_SEND_DATA:
+			if(previous == DLE){
+				UDR0 = DLE;
+				previous = 0;
+			}
+			else {
+				UDR0 = previous = tx_buffer[tx_ptr++];
+				if(tx_ptr == tx_len){
+					tx_state = STATE_SEND_CSUM;
+					previous = 0;
+				}
+			}
+			break;
+		case STATE_SEND_CSUM:
+			/* We may need to pad the checksum if it hits a DLE */
+			if(tx_checksum == DLE && previous == 0){
+				UDR0 = previous = DLE;
+			}
+			else {
+				tx_state = STATE_END_DLE;
+				UDR0 = tx_checksum;
+			}
+			break;
+		case STATE_END_DLE:
+			UDR0 = DLE;
+			tx_state = STATE_END_ETX;
+			break;
+		case STATE_END_ETX:
+			DISABLE_TX_INT();
+			UDR0 = ETX;
+			previous = 0;
+			tx_state = STATE_DONE;
+			break;
+		case STATE_DONE:
+			break;
+	}
 }
 
 static void
@@ -356,8 +498,10 @@ serial_begin_tx()
 	/* Switch on the TX complete interrupt */
 	ENABLE_TX_INT();
 
+	tx_state = STATE_START_STX;
+
 	/* Kick off the transmission */
-	UDR0 = tx_buffer[tx_ptr++];
+	UDR0 = DLE;
 }
 
 /*

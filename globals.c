@@ -5,8 +5,6 @@
 
 #include "globals.h"
 
-const uint8_t fm_version_str[] PROGMEM = "0.1";
-
 /* Duty cycle for the fans and pumps */
 volatile uint8_t fan_duty_cycle  = 0;
 volatile uint8_t pump_duty_cycle = 0;
@@ -36,7 +34,5 @@ volatile uint8_t status_flag_1 = SF1_ROTATE;
  * be forced to 100% 
  * */
 
-uint8_t eeprom_max_temp EEMEM;
-uint8_t eeprom_temp_bands[4] EEMEM;
-
 volatile uint8_t adc_current_target = ADC_AMBIENT_TEMP;
+

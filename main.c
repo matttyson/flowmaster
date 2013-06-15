@@ -11,6 +11,7 @@
 #include "init.h"
 #include "globals.h"
 #include "serial.h"
+#include "speed.h"
 
 volatile uint8_t update = 0;
 
@@ -24,6 +25,10 @@ main(void)
 	if(MCUSR & (1 << WDRF)){
 		SF1_SET_BIT(SF1_WDT_RESET);
 	}
+
+    // Enable automatic regulation.
+    SF1_SET_BIT(SF1_AUTOMATED);
+
 	MCUSR = 0;
 	wdt_disable();
 	cli();
@@ -60,6 +65,9 @@ main(void)
 				display_switch(current_display++);
 			}
 #endif
+			if(SF1_TEST_BIT(SF1_AUTOMATED)){
+				speed_regulate();
+			}
 
 			SF1_CLEAR_BIT(SF1_UPDATE_READY);
 		}
