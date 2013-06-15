@@ -41,8 +41,10 @@ speed_regulate()
 	span = (uint8_t)(input & 0xF);
 	index = (uint8_t)(input / 16);
 
-	ft = speed_read_table(index);
-	ft1 = speed_read_table(index+1);
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		ft = speed_read_table(index);
+		ft1 = speed_read_table(index+1);
+	}
 
 	slope = (uint8_t)(ft1 - ft);
 	offset = (uint8_t)((slope * span) / 16);
