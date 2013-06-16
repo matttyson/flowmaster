@@ -139,7 +139,7 @@ progboot: $(COMBHEX)
 # Program the fuses for the ATMEGA88
 # Change accordingly if you are using a different part!
 LFUSE=D6
-HFUSE=D7
+HFUSE=D4
 EFUSE=03
 # http://eleccelerator.com/fusecalc/fusecalc.php?chip=atmega88&LOW=D6&HIGH=D7&EXTENDED=04&LOCKBIT=FF
 progfuse:
@@ -156,7 +156,7 @@ dumpflash:
 	avrdude -p $(DUDE_PART) -c $(DUDE_PROG) -P $(DUDE_PORT) -U flash:r:dump.hex:i
 
 fuseurl:
-	@echo "http://eleccelerator.com/fusecalc/fusecalc.php?chip=atmega88&LOW=D6&HIGH=D7&EXTENDED=04&LOCKBIT=FF"
+	@echo "http://eleccelerator.com/fusecalc/fusecalc.php?chip=atmega88&LOW=$(LFUSE)&HIGH=$(HFUSE)&EXTENDED=$(EFUSE)&LOCKBIT=FF"
 # misc
 
 comb: all $(COMBHEX)
