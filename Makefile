@@ -124,7 +124,7 @@ $(COMBHEX): $(HEX) $(BOOTHEX)
 	srec_cat  pumpcontrol.hex -intel bootloader.hex -intel -o $(COMBHEX) -intel
 
 $(CREATETABLES): createeetable.c
-	gcc -lm -o $(CREATETABLES) -Wall -O2 -DF_CPU=$(F_CPU) createeetable.c
+	gcc -o $(CREATETABLES) -Wall -O2 -DF_CPU=$(F_CPU) createeetable.c -lm
 
 eetable.c: $(CREATETABLES) createeetable.c
 	./$(CREATETABLES)
